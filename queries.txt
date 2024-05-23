@@ -1,0 +1,169 @@
+-- Segment 1:
+
+
+-- Q Which columns in the movie table have null values?
+-- Type your code below:
+select
+SUM(CASE when m.id is null then 1 else 0 end ) as id_null,
+SUM(CASE when m.title is null then 1 else 0 end ) as title_null,
+SUM(CASE when m.year is null then 1 else 0 end ) as year_null,
+SUM(CASE when m.date_published is null then 1 else 0 end ) as date_null,
+SUM(CASE when m.duration is null then 1 else 0 end ) as duration_null,
+SUM(CASE when m.country is null then 1 else 0 end ) as country_null,
+SUM(CASE when m.worlwide_gross_income is null then 1 else 0 end ) as world_null,
+SUM(CASE when m.languages is null then 1 else 0 end ) as language_null,
+SUM(CASE when m.production_company is null then 1 else 0 end ) as production_null
+from movie as m;
+
+-- Q Find the total number of movies released each year?
+
+select year,
+count(id) as number_of_movies
+from movie
+group by year
+
+-- Q Month wise trend of releasing movies?
+
+select EXTRACT(MONTH FROM date_published) AS months,
+to_char(date_published, 'Month') AS month_name,
+count(id) as number_of_movies
+from movie
+group by months, month_name
+order by months;
+
+
+-- Q How many movies were produced in the USA or India in the year 2019??
+-- Type your code below:
+
+select count(id) as no_of_movies_released_in_India_and_USA
+from movie
+where year = 2019 and
+(country like '%USA%' or country like '%India%')
+
+-- Q Find the unique list of the genres present in the data set?
+-- Type your code below:
+
+select genre 
+from genre
+group by genre
+
+-- Q Which genre had the highest number of movies produced overall?
+-- Type your code below:
+
+select genre,
+count(*) as num_of_movies
+from genre
+group by genre
+order by num_of_movies desc
+limit 1;
+
+-- Q How many movies belong to only one genre?
+-- Type your code below:
+
+with single_genre as (
+	select movie_id
+	from genre
+	group by movie_id
+	having count(genre) = 1
+)
+select count(*)
+from single_genre
+
+-- Q What is the average duration of movies in each genre? 
+
+select genre,
+round(avg(duration),2) as avg_duration
+from movie m
+join genre g
+on m.id = g.movie_id
+group by genre;
+
+-- Q What is the rank of the ‘thriller’ genre of movies among 
+-- all the genres in terms of number of movies produced? 
+
+select genre,
+count(movie_id) as counts,
+rank() over (order by count(movie_id) desc) as genre_rank
+from genre
+group by genre;
+
+
+-- Q Find the minimum and maximum values in  each column 
+-- of the ratings table except the movie_id column?
+
+select 
+min(avg_rating) as min_avg_rating,
+max(avg_rating) as max_avg_rating,
+min(total_votes) as min_total_votes,
+max(total_votes) as max_total_votes,
+min(median_rating) as min_median_rating,
+max(median_rating) as max_median_rating
+from ratings
+
+-- Q Which are the top 10 movies based on average rating?
+
+select movie_id,
+avg_rating,
+rank() over(order by avg_rating desc) as rating_rank
+from ratings
+limit 10;
+
+-- Q Summarise the ratings table based on the movie counts by median ratings.
+
+select median_rating,
+count(movie_id) as movie_counts
+from ratings
+group by median_rating
+order by median_rating;
+
+-- Q Which production house has produced the most number of hit movies (average rating > 8)??
+
+select production_company,
+count(m.id) as movie_count,
+rank() over(order by count(m.id) desc) as production_rank
+from movie as m
+join ratings as r
+on m.id = r.movie_id 
+where r.avg_rating > 8 and m.production_company is not null
+group by production_company;
+
+-- Q How many movies released in each genre during March 2017 
+-- in the USA had more than 1,000 votes?
+
+select genre,
+count(m.id) as movie_count
+from movie as m
+join ratings as r on m.id = r.movie_id
+join genre as g on m.id = g.movie_id
+where total_votes > 1000 and 
+m.year = 2017 and 
+extract(MONTH from date_published) = 03 and
+country like '%USA%'
+group by genre
+order by movie_count desc
+
+-- Q Find movies of each genre that start with the word ‘The’ 
+-- and which have an average rating > 8?
+
+select m.title,
+max(r.avg_rating) as avg_rating,
+min(g.genre) as genre
+from movie as m
+join ratings as r on m.id = r.movie_id
+join genre as g on m.id = g.movie_id
+where title like 'The%' and
+avg_rating > 8
+group by title
+
+
+-- Q Of the movies released between 1 April 2018 and 1 April 2019, 
+-- how many were given a median rating of 8?
+
+select count(id) as movie_count
+from movie m
+join ratings r
+on m.id = r.movie_id
+where median_rating = 8 and
+date_published between '2018-04-01' and '2019-04-01';
+
+
